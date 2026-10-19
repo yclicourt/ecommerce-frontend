@@ -1,0 +1,68 @@
+variables:
+  IMAGE_NAME: $REGISTRY/$REGISTRY_PROJECT/frontend-ecommerce-app
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+stages:
+  - setup-deps
+  - build-image
+
+install-deps:
+  stage: setup-deps
+  image: $REGISTRY/oficial-images/node:20-alpine
+
+  cache:
+    key: "pnpm-cache-frontend"
+    paths:
+      - .pnpm-store
+      - node_modules/
+    policy: push
+
+  script:
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install --frozen-lockfile --prefer-offline
+
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1h
+
+build-image-harbor:
+  stage: build-image
+  image: quay.io/podman/stable:latest
+
+  cache:
+    key: "pnpm-cache-frontend"
+    paths:
+      - .pnpm-store
+      - node_modules/
+    policy: pull #
+
+  variables:
+    # IMPORTANTE: Podman necesita este storage driver para correr dentro de k3s
+    STORAGE_DRIVER: vfs
+
+
+  script:
+
+    - mkdir -p src/environments
+    # Creamos el archivo con valores base o variables de entorno de GitLab
+    - 'echo "export const environment = { production: true, apiUrl: \"$API_URL\", tokenKey : \"$tokenKey\",currentUser: \"$currentUser\",clientUrl: \"$clientUrl\" ,brandName: \"$brandName\" };" > src/environments/environment.prod.ts'
+    - 'echo "export const environment = { production: true, apiUrl: \"$API_URL\" , tokenKey : \"$tokenKey\",currentUser: \"$currentUser\",clientUrl: \"$clientUrl\" ,brandName: \"$brandName\" };" > src/environments/environment.ts'
+    # 1. Login en Harbor (Podman usará los certificados montados por tu Runner)
+    - echo "$REGISTRY_PASS" | podman login $REGISTRY -u "$REGISTRY_USER" --password-stdin
+
+    - podman pull $IMAGE_NAME:latest || true
+    # 2. Build de la imagen
+    # Usamos --tls-verify=true porque ya montaste los certificados en el Runner
+    - podman build 
+        --tls-verify=true 
+        --cache-from $IMAGE_NAME
+        -t $IMAGE_NAME:$IMAGE_TAG 
+        -t $IMAGE_NAME:latest 
+        -f Dockerfile .
+
+    # 3. Push a Harbor
+    - podman tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+    - podman push $IMAGE_NAME:latest

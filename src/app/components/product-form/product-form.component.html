@@ -1,0 +1,131 @@
+<div class="max-w-xl mt-8 mx-auto ml-2 mr-20">
+  <form [formGroup]="productForm">
+    <fieldset>
+      <label for="product-name" class="dark:text-white">Product Name:</label>
+      <input
+        type="text"
+        id="product-name"
+        placeholder="Product Name"
+        class="bg-gray-200 p-3 rounded-lg block w-full mb-3"
+        formControlName="name"
+      />
+      @if(name.invalid && name.touched){
+      <p class="text-red-500 font-bold">Name is required</p>
+      }
+    </fieldset>
+    <fieldset>
+      <label for="product-description" class="dark:text-white"
+        >Product Description:</label
+      >
+      <textarea
+        name="product-description"
+        placeholder="Product Description"
+        class="bg-gray-200 p-3 rounded-lg block w-full mb-3"
+        formControlName="description"
+      ></textarea>
+      @if(description.invalid && description.touched){
+      <p class="text-red-500 font-bold">Description is required</p>
+      }
+    </fieldset>
+    <fieldset>
+      <label for="product-price" class="dark:text-white">Product Price:</label>
+      <input
+        type="number"
+        id="product-price"
+        placeholder="Product Price"
+        class="bg-gray-200 p-3 rounded-lg block w-full mb-3"
+        formControlName="price"
+      />
+      @if(price.invalid && price.touched){
+      <p class="text-red-500 font-bold">Price is required</p>
+      }
+    </fieldset>
+    <fieldset>
+      <label for="product-image" class="dark:text-white">Product Image:</label>
+      <input
+        type="file"
+        id="product-image"
+        placeholder="Image Product"
+        class="bg-gray-200 p-3 rounded-lg block w-full mb-3"
+        (change)="onFileChanges($event)"
+        accept="image/*"
+        #imageInput
+      />
+    </fieldset>
+    <fieldset>
+      <label class="dark:text-white">Product Categories:</label>
+      <div class="space-y-2 mb-3">
+        <!-- Lista de categorías seleccionadas -->
+        <div
+          *ngFor="let category of selectedCategories; let i = index"
+          class="flex items-center justify-between bg-gray-100 p-2 rounded"
+        >
+          <span>{{ category.name }}</span>
+          <button
+            type="button"
+            class="text-red-500 hover:text-red-700"
+            (click)="removeCategory(i)"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Selector para agregar categorías existentes -->
+        <div class="flex gap-2">
+          <select
+            class="bg-gray-200 p-3 rounded-lg flex-1"
+            [(ngModel)]="selectedCategoryName"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option [value]="null">Select a category</option>
+            <option *ngFor="let catName of categoryNames" [value]="catName">
+              {{ catName }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="bg-gray-700 text-white rounded-full px-4 py-2 font-medium"
+            (click)="addCategory()"
+            [disabled]="!selectedCategoryName"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </fieldset>
+    <button
+      class="bg-gray-700 text-white rounded-full px-4 py-2 font-medium"
+      (click)="createProduct()"
+      *ngIf="!currentProductId"
+    >
+      Add Product
+    </button>
+    <button
+      class="bg-gray-700 text-white rounded-full px-4 py-2 font-medium"
+      (click)="updateProduct()"
+      *ngIf="currentProductId"
+    >
+      Update Product
+    </button>
+    <button
+      class="bg-red-500 text-white rounded-full px-4 py-2 font-medium ml-2"
+      (click)="resetForm()"
+      *ngIf="currentProductId"
+    >
+      Cancel
+    </button>
+  </form>
+</div>
+
